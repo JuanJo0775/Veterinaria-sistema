@@ -9,6 +9,9 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
 
 # Configuración de URLs de servicios
 AUTH_SERVICE_URL = os.getenv('AUTH_SERVICE_URL', 'http://auth-service:5001')
@@ -118,8 +121,7 @@ def dashboard():
 @login_required
 def new_appointment():
     user = session.get('user')
-    token = session.get('token')
-    headers = {'Authorization': f'Bearer {token}'}
+    headers = {'Authorization': f'Bearer {session["token"]}'}
 
     if user['role'] != 'client':
         flash('Solo los clientes pueden agendar citas', 'warning')
@@ -180,8 +182,7 @@ def new_appointment():
     return render_template('appointment.html',
                            veterinarians=veterinarians,
                            pets=pets,
-                           user=user,
-                           token=token)
+                           user=user)
 
 
 @app.route('/appointment/<int:appointment_id>/cancel', methods=['POST'])
@@ -215,13 +216,26 @@ def health():
 
 
 # Nueva ruta para manejar la creación de mascotas
-@app.route('/api/appointments/pets', methods=['POST'])
-@login_required
+@app.route('/api/appointments/pets', methods=['POST', 'OPTIONS'])
 def create_pet_proxy():
     """Proxy para redirigir la llamada al servicio de appointments"""
-    token = session.get('token')
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'POST,OPTIONS')
+        return response
+
+    # Get token from either Authorization header or session
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        token = auth_header.replace('Bearer ', '')
+    else:
+        token = session.get('token')
 
     if not token:
+        app.logger.error("No token found in request or session")
         return jsonify({'error': 'No hay sesión activa'}), 401
 
     headers = {
@@ -232,6 +246,7 @@ def create_pet_proxy():
     # Debug logging
     app.logger.info(f"Creating pet with data: {request.json}")
     app.logger.info(f"Token present: {bool(token)}")
+    app.logger.info(f"Token first 10 chars: {token[:10] if token else 'None'}")
 
     # Redirigir la solicitud al servicio de appointments
     try:
@@ -242,10 +257,40 @@ def create_pet_proxy():
         )
 
         app.logger.info(f"Response from appointment service: {response.status_code}")
-        return response.json(), response.status_code
+
+        # Add CORS headers to response
+        result = jsonify(response.json())
+        result.headers.add('Access-Control-Allow-Origin', '*')
+        return result, response.status_code
     except Exception as e:
         app.logger.error(f"Error creating pet: {str(e)}")
         return jsonify({'error': 'Error al comunicarse con el servicio'}), 500
+
+
+# Proxy para obtener horarios disponibles
+@app.route('/api/appointments/available-slots/<int:veterinarian_id>')
+@login_required
+def get_available_slots_proxy(veterinarian_id):
+    """Proxy para obtener horarios disponibles"""
+    token = session.get('token')
+    date = request.args.get('date')
+
+    if not token:
+        return jsonify({'error': 'No hay sesión activa'}), 401
+
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+
+    try:
+        response = requests.get(
+            f'{APPOINTMENT_SERVICE_URL}/api/appointments/available-slots/{veterinarian_id}?date={date}',
+            headers=headers
+        )
+        return response.json(), response.status_code
+    except Exception as e:
+        app.logger.error(f"Error getting available slots: {str(e)}")
+        return jsonify({'error': 'Error al obtener horarios disponibles'}), 500
 
 
 if __name__ == '__main__':

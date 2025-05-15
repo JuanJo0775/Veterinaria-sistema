@@ -98,7 +98,7 @@
 // Store data for JavaScript use
 window.veterinaryUserData = {
     userId: {{ user.id }},
-    authToken: "{{ token }}"
+    authToken: "{{ session.token }}"
 };
 
 // Función para actualizar los horarios disponibles
@@ -111,11 +111,7 @@ async function updateAvailableSlots() {
     }
 
     try {
-        const response = await fetch(`/api/appointments/available-slots/${veterinarianId}?date=${appointmentDate}`, {
-            headers: {
-                'Authorization': 'Bearer ' + window.veterinaryUserData.authToken
-            }
-        });
+        const response = await fetch(`/api/appointments/available-slots/${veterinarianId}?date=${appointmentDate}`);
         const data = await response.json();
 
         const timeSelect = document.getElementById('appointment_time');

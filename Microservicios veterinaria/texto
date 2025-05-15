@@ -40,9 +40,6 @@ chmod +x start.sh
 ./start.sh
 
 
-
-#comandos para inicialisar el doker
-
 cd veterinary-appointment-system
 
 # Detener y limpiar todo

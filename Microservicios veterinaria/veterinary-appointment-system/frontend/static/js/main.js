@@ -173,7 +173,7 @@ async function updateAvailableSlots() {
     timeSelect.disabled = true;
 
     try {
-        const response = await fetchAPI(`/api/available-slots/${veterinarianId}?date=${appointmentDate}`);
+        const response = await fetchAPI(`/api/appointments/available-slots/${veterinarianId}?date=${appointmentDate}`);
 
         timeSelect.innerHTML = '<option value="">Seleccione una hora...</option>';
 
@@ -214,17 +214,23 @@ function closeAddPetModal() {
     }
 }
 
-// Add pet function (placeholder for now)
+// Add pet function
 async function addPet() {
     const form = document.getElementById('add-pet-form');
     if (!form) return;
 
-    const token = sessionStorage.getItem('token');
+    // Get user data from window object (set by template)
+    const userData = window.veterinaryUserData;
+    if (!userData || !userData.authToken) {
+        alert('Sesión no válida. Por favor recarga la página.');
+        return;
+    }
+
     const petData = {
-        owner_id: parseInt(sessionStorage.getItem('userId')),
+        owner_id: userData.userId,
         name: form.pet_name.value,
         species: form.pet_species.value,
-        breed: form.pet_breed.value,
+        breed: form.pet_breed.value || '',
         age: parseInt(form.pet_age.value) || null,
         weight: parseFloat(form.pet_weight.value) || null
     };
@@ -236,12 +242,12 @@ async function addPet() {
     }
 
     try {
-        // Call the correct appointment service endpoint
-        const response = await fetch('http://localhost:5002/api/appointments/pets', {
+        // Use proxy endpoint in frontend instead of direct service call
+        const response = await fetch('/api/appointments/pets', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${userData.authToken}`
             },
             body: JSON.stringify(petData)
         });
