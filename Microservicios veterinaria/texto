@@ -38,3 +38,18 @@ docker-compose ps
 
 chmod +x start.sh
 ./start.sh
+
+
+
+comandos para inicialisar el doker
+
+cd veterinary-appointment-system
+
+# Detener y limpiar todo
+docker-compose down -v
+
+# Reconstruir las imágenes con las correcciones
+docker-compose build --no-cache
+
+# Levantar todos los servicios
+docker-compose up
