@@ -41,7 +41,7 @@ chmod +x start.sh
 
 
 
-comandos para inicialisar el doker
+#comandos para inicialisar el doker
 
 cd veterinary-appointment-system
 
