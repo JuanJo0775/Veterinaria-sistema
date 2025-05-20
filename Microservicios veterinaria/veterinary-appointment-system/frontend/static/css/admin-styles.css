@@ -1,0 +1,407 @@
+/* Estilos adicionales para el panel de administrador */
+
+/* Layout del panel de administrador */
+.admin-dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.role-badge-admin {
+    background-color: #8e44ad;
+}
+
+/* Navegación del panel */
+.admin-nav {
+    display: flex;
+    background-color: var(--white);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.admin-nav-link {
+    padding: 1rem 1.5rem;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: background-color 0.3s;
+    flex: 1;
+    text-align: center;
+    font-weight: bold;
+}
+
+.admin-nav-link:hover {
+    background-color: #f5f5f5;
+}
+
+.admin-nav-link.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+/* Contenido de las pestañas */
+.admin-tab {
+    background-color: var(--white);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+/* Estadísticas del dashboard */
+.stats-overview {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+.stats-section {
+    margin-bottom: 2rem;
+}
+
+.stats-section h2 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+/* Filtros */
+.filter-section {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-section .form-control {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Tabla de personal */
+.table-staff, .table-clients {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-staff th, .table-staff td,
+.table-clients th, .table-clients td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.table-staff th, .table-clients th {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.table-staff tr:hover, .table-clients tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Badges de estado */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+}
+
+.status-active {
+    background-color: #e8f5e9;
+    color: #388E3C;
+}
+
+.status-inactive {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+/* Gestión de horarios */
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.schedule-day {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.schedule-day h4 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.schedule-slots {
+    min-height: 100px;
+    margin-bottom: 1rem;
+}
+
+.schedule-time-range {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.schedule-break {
+    color: #f57c00;
+    margin-bottom: 0.5rem;
+}
+
+.schedule-info {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.schedule-not-available {
+    padding: 1rem;
+    text-align: center;
+    color: #c62828;
+    font-style: italic;
+    border: 1px dashed #ddd;
+    border-radius: 4px;
+}
+
+.schedule-actions {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+/* Configuración */
+.settings-section {
+    margin-bottom: 2rem;
+}
+
+.settings-section h3 {
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+    font-size: 1.3rem;
+}
+
+/* Modales específicos */
+.copy-options {
+    margin: 1rem 0;
+}
+
+.form-check {
+    margin-bottom: 0.5rem;
+}
+
+.form-check-input {
+    margin-right: 0.5rem;
+}
+
+.form-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.mr-1 {
+    margin-right: 0.5rem;
+}
+
+.password-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+/* Media queries */
+@media (min-width: 768px) {
+    .stats-overview {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-nav {
+        flex-wrap: nowrap;
+    }
+}
+
+@media (max-width: 767px) {
+    .admin-nav {
+        flex-direction: column;
+    }
+
+    .admin-nav-link {
+        padding: 0.75rem;
+    }
+
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-tab {
+        padding: 1rem;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+}
+
+/* Estilos específicos para diferentes roles */
+.role-badge-veterinarian {
+    background-color: #2196F3;
+}
+
+.role-badge-receptionist {
+    background-color: #FF9800;
+}
+
+.role-badge-assistant {
+    background-color: #4CAF50;
+}
+
+.role-badge-client {
+    background-color: #9E9E9E;
+}
+
+/* Tabs para dashboards específicos por rol */
+.role-dashboard-tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 2rem;
+}
+
+.role-dashboard-tab {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.role-dashboard-tab:hover {
+    background-color: #f5f5f5;
+}
+
+.role-dashboard-tab.active {
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* Dashboard de Veterinario */
+.vet-schedule-overview {
+    margin-bottom: 2rem;
+}
+
+.vet-schedule-overview h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.today-appointments-list {
+    margin-top: 1rem;
+}
+
+.appointment-item {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    transition: transform 0.3s;
+}
+
+.appointment-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.appointment-time {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.appointment-client {
+    color: #666;
+}
+
+.appointment-pet {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.pet-icon {
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+}
+
+/* Dashboard de Recepcionista */
+.receptionist-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.action-card {
+    background-color: var(--white);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+}
+
+.action-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+/* Dashboard de Auxiliar */
+.task-list {
+    margin-top: 1rem;
+}
+
+.task-item {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-status {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.task-status-pending {
+    background-color: #FFC107;
+}
+
+.task-status-completed {
+    background-color: #4CAF50;
+}
+
+.task-status-late {
+    background-color: #F44336;
+}
+
+.task-description {
+    flex: 1;
+}
+
+.task-actions {
+    white-space: nowrap;
+}
