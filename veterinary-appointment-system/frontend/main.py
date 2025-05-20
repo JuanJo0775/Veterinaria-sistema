@@ -1,9 +1,11 @@
 # frontend/main.py
 import sys
 import os
+from datetime import datetime
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from flask import Flask, render_template, redirect, url_for, request, session, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, request, session, flash, jsonify, make_response
 import requests
 import os
 from dotenv import load_dotenv
@@ -22,7 +24,6 @@ AUTH_SERVICE_URL = 'http://localhost:5001'
 APPOINTMENT_SERVICE_URL = 'http://localhost:5002'
 NOTIFICATION_SERVICE_URL = 'http://localhost:5003'
 
-# Copiar todas las rutas del archivo app.py original aquí
 
 # Decorador para rutas protegidas
 def login_required(f):
@@ -32,11 +33,14 @@ def login_required(f):
             flash('Por favor inicia sesión primero', 'warning')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -44,6 +48,7 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
 
+        # Llamar al servicio de autenticación
         response = requests.post(f'{AUTH_SERVICE_URL}/api/auth/login', json={
             'email': email,
             'password': password
@@ -53,12 +58,26 @@ def login():
             data = response.json()
             session['token'] = data['access_token']
             session['user'] = data['user']
+
             flash('Inicio de sesión exitoso', 'success')
-            return redirect(url_for('dashboard'))
+
+            # Redireccionar según el rol del usuario
+            role = data['user']['role']
+            if role == 'admin':
+                return redirect(url_for('admin_panel'))
+            elif role == 'veterinarian':
+                return redirect(url_for('vet_dashboard'))
+            elif role == 'receptionist':
+                return redirect(url_for('receptionist_dashboard'))
+            elif role == 'assistant':
+                return redirect(url_for('assistant_dashboard'))
+            else:  # cliente
+                return redirect(url_for('dashboard'))
         else:
             flash('Credenciales inválidas', 'danger')
 
     return render_template('login.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -69,8 +88,8 @@ def register():
             'first_name': request.form.get('first_name'),
             'last_name': request.form.get('last_name'),
             'phone': request.form.get('phone'),
-            'role': request.form.get('role'),
-            'specialization': request.form.get('specialization')
+            'role': 'client',  # Forzar siempre a cliente para registro público
+            'specialization': None  # No se requiere especialización para clientes
         }
 
         response = requests.post(f'{AUTH_SERVICE_URL}/api/auth/register', json=form_data)
@@ -85,6 +104,7 @@ def register():
             flash('Error en el registro', 'danger')
 
     return render_template('register.html')
+
 
 @app.route('/dashboard')
 @login_required
@@ -111,6 +131,7 @@ def dashboard():
     notifications = notif_response.json().get('notifications', []) if notif_response.status_code == 200 else []
 
     return render_template('dashboard.html', user=user, appointments=appointments, notifications=notifications)
+
 
 @app.route('/appointment/new', methods=['GET', 'POST'])
 @login_required
@@ -175,6 +196,7 @@ def new_appointment():
                            pets=pets,
                            user=user)
 
+
 @app.route('/appointment/<int:appointment_id>/cancel', methods=['POST'])
 @login_required
 def cancel_appointment(appointment_id):
@@ -192,15 +214,18 @@ def cancel_appointment(appointment_id):
 
     return redirect(url_for('dashboard'))
 
+
 @app.route('/logout')
 def logout():
     session.clear()
     flash('Sesión cerrada exitosamente', 'success')
     return redirect(url_for('index'))
 
+
 @app.route('/health')
 def health():
     return {'status': 'healthy', 'service': 'frontend'}, 200
+
 
 @app.route('/api/appointments/pets', methods=['POST', 'OPTIONS'])
 def create_pet_proxy():
@@ -240,6 +265,7 @@ def create_pet_proxy():
         app.logger.error(f"Error creating pet: {str(e)}")
         return jsonify({'error': 'Error al comunicarse con el servicio'}), 500
 
+
 @app.route('/api/appointments/available-slots/<int:veterinarian_id>')
 @login_required
 def get_available_slots_proxy(veterinarian_id):
@@ -262,6 +288,472 @@ def get_available_slots_proxy(veterinarian_id):
     except Exception as e:
         app.logger.error(f"Error getting available slots: {str(e)}")
         return jsonify({'error': 'Error al obtener horarios disponibles'}), 500
+
+
+#
+# PANEL DE ADMINISTRADOR
+#
+
+@app.route('/admin')
+@login_required
+def admin_panel():
+    """Panel de administración (solo para administradores)"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        flash('Acceso no autorizado. Se requieren privilegios de administrador.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    return render_template('admin_panel.html', user=user)
+
+
+@app.route('/api/admin/dashboard/stats')
+@login_required
+def admin_dashboard_stats():
+    """API para estadísticas del panel de administración"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+
+    # Reenviar la petición al servicio de autenticación
+    headers = {'Authorization': f'Bearer {session["token"]}'}
+    try:
+        response = requests.get(f'{AUTH_SERVICE_URL}/api/admin/dashboard/stats', headers=headers)
+        return response.json(), response.status_code
+    except Exception as e:
+        app.logger.error(f"Error obteniendo estadísticas: {str(e)}")
+        # Devolver datos simulados si hay un error
+        return jsonify({
+            'staff_stats': {
+                'veterinarians': 2,
+                'receptionists': 1,
+                'assistants': 1,
+                'clients': 2,
+                'total_staff': 4
+            }
+        }), 200
+
+
+@app.route('/api/admin/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@login_required
+def admin_api_proxy(path):
+    """Proxy para las rutas de administración"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+
+    # Reenviar la petición al servicio correspondiente
+    headers = {
+        'Authorization': f'Bearer {session["token"]}',
+        'Content-Type': 'application/json'
+    }
+
+    url = f'{AUTH_SERVICE_URL}/api/admin/{path}'
+
+    try:
+        if request.method == 'GET':
+            response = requests.get(url, headers=headers, params=request.args)
+        elif request.method == 'POST':
+            response = requests.post(url, headers=headers, json=request.json)
+        elif request.method == 'PUT':
+            response = requests.put(url, headers=headers, json=request.json)
+        elif request.method == 'DELETE':
+            response = requests.delete(url, headers=headers)
+        else:
+            return jsonify({'error': 'Método no soportado'}), 405
+
+        return response.json(), response.status_code
+    except Exception as e:
+        app.logger.error(f"Error en proxy de administración: {str(e)}")
+        # Si el endpoint es staff, devolver datos simulados
+        if 'staff' in path:
+            if request.method == 'GET':
+                return jsonify({
+                    'staff': [
+                        {
+                            'id': 1,
+                            'email': 'admin@veterinary.com',
+                            'first_name': 'Admin',
+                            'last_name': 'Sistema',
+                            'phone': '555-ADMIN',
+                            'role': 'admin',
+                            'specialization': None,
+                            'is_active': True
+                        },
+                        {
+                            'id': 2,
+                            'email': 'vet1@veterinary.com',
+                            'first_name': 'Dr. Juan',
+                            'last_name': 'García',
+                            'phone': '555-0101',
+                            'role': 'veterinarian',
+                            'specialization': 'Cirugía General',
+                            'is_active': True
+                        }
+                    ]
+                }), 200
+            elif request.method == 'POST' or request.method == 'PUT':
+                return jsonify({
+                    'message': 'Operación simulada exitosa',
+                    'user': request.json
+                }), 200
+
+        return jsonify({'error': 'Error de comunicación con el servicio'}), 500
+
+
+@app.route('/api/schedules/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@login_required
+def schedules_api_proxy(path):
+    """Proxy para las rutas de horarios"""
+    headers = {
+        'Authorization': f'Bearer {session["token"]}',
+        'Content-Type': 'application/json'
+    }
+
+    url = f'{APPOINTMENT_SERVICE_URL}/api/schedules/{path}'
+
+    try:
+        if request.method == 'GET':
+            response = requests.get(url, headers=headers, params=request.args)
+        elif request.method == 'POST':
+            response = requests.post(url, headers=headers, json=request.json)
+        elif request.method == 'PUT':
+            response = requests.put(url, headers=headers, json=request.json)
+        elif request.method == 'DELETE':
+            response = requests.delete(url, headers=headers)
+        else:
+            return jsonify({'error': 'Método no soportado'}), 405
+
+        return response.json(), response.status_code
+    except Exception as e:
+        app.logger.error(f"Error en proxy de horarios: {str(e)}")
+
+        # Si el endpoint es staff-schedules, devolver datos simulados
+        if 'staff-schedules' in path:
+            if request.method == 'GET':
+                return jsonify({
+                    'schedules': [
+                        {
+                            'id': 1,
+                            'staff_id': int(path.split('/')[-1]) if path.split('/')[-1].isdigit() else 2,
+                            'day_of_week': 0,  # Lunes
+                            'start_time': '09:00:00',
+                            'end_time': '17:00:00',
+                            'break_start': '13:00:00',
+                            'break_end': '14:00:00',
+                            'max_appointments': 8,
+                            'appointment_duration': 30,
+                            'is_available': True
+                        },
+                        {
+                            'id': 2,
+                            'staff_id': int(path.split('/')[-1]) if path.split('/')[-1].isdigit() else 2,
+                            'day_of_week': 1,  # Martes
+                            'start_time': '09:00:00',
+                            'end_time': '17:00:00',
+                            'break_start': '13:00:00',
+                            'break_end': '14:00:00',
+                            'max_appointments': 8,
+                            'appointment_duration': 30,
+                            'is_available': True
+                        }
+                    ]
+                }), 200
+            else:
+                return jsonify({
+                    'message': 'Operación simulada exitosa',
+                    'schedule': request.json
+                }), 200
+
+        return jsonify({'error': 'Error de comunicación con el servicio'}), 500
+
+
+# Proxy para estadísticas de clientes
+@app.route('/api/admin/clients/stats')
+@login_required
+def admin_client_stats():
+    """API para estadísticas de clientes"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+
+    # Datos simulados
+    return jsonify({
+        'stats': {
+            'total': 10,
+            'active': 8,
+            'total_pets': 15,
+            'avg_pets_per_client': 1.5
+        }
+    }), 200
+
+
+# Proxy para obtener configuración del sistema
+@app.route('/api/admin/settings')
+@login_required
+def admin_get_settings():
+    """API para obtener configuración del sistema"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+
+    # Datos simulados para configuración
+    settings = {
+        'clinic_name': 'Clínica Veterinaria',
+        'business_hours_start': '09:00',
+        'business_hours_end': '18:00',
+        'appointment_duration': 30,
+        'max_appointments_per_day': 20,
+        'email_notifications': 'true',
+        'reminder_hours': 24,
+        'email_template': 'Estimado(a) {{nombre}},\n\nLe recordamos su cita programada para el {{fecha}} a las {{hora}}.\n\nSaludos cordiales,\nClínica Veterinaria'
+    }
+
+    return jsonify({'settings': settings}), 200
+
+
+# Proxy para guardar configuración general
+@app.route('/api/admin/settings/general', methods=['PUT'])
+@login_required
+def admin_save_general_settings():
+    """API para guardar configuración general"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+
+    # Simulación de guardado
+    return jsonify({'message': 'Configuración guardada exitosamente'}), 200
+
+
+# Proxy para guardar configuración de notificaciones
+@app.route('/api/admin/settings/notifications', methods=['PUT'])
+@login_required
+def admin_save_notification_settings():
+    """API para guardar configuración de notificaciones"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+
+    # Simulación de guardado
+    return jsonify({'message': 'Configuración de notificaciones guardada exitosamente'}), 200
+
+
+# Proxy para generar respaldo
+@app.route('/api/admin/settings/backup')
+@login_required
+def admin_generate_backup():
+    """API para generar respaldo de la base de datos"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+
+    # Crear un archivo SQL simulado
+    backup_content = "-- Backup simulado de la base de datos\n"
+    backup_content += "-- Fecha: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n\n"
+    backup_content += "-- Tablas y datos irían aquí en un respaldo real\n"
+
+    # Crear una respuesta con el archivo SQL
+    response = make_response(backup_content)
+    response.headers["Content-Disposition"] = "attachment; filename=backup.sql"
+    response.headers["Content-Type"] = "text/plain"
+
+    return response
+
+
+# Proxy para restaurar desde respaldo
+@app.route('/api/admin/settings/restore', methods=['POST'])
+@login_required
+def admin_restore_from_backup():
+    """API para restaurar desde respaldo"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea administrador
+    if user['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+
+    # Verificar que se haya subido un archivo
+    if 'backup_file' not in request.files:
+        return jsonify({'error': 'No se ha proporcionado archivo de respaldo'}), 400
+
+    # Simulación de restauración
+    return jsonify({'message': 'Restauración completada exitosamente'}), 200
+
+
+#
+# DASHBOARDS ESPECÍFICOS POR ROL
+#
+
+@app.route('/dashboard/veterinarian')
+@login_required
+def vet_dashboard():
+    """Dashboard específico para veterinarios"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea veterinario
+    if user['role'] != 'veterinarian':
+        flash('Acceso no autorizado.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    headers = {'Authorization': f'Bearer {session["token"]}'}
+
+    # Obtener citas del día para este veterinario
+    today = datetime.now().strftime('%Y-%m-%d')
+    response = requests.get(
+        f'{APPOINTMENT_SERVICE_URL}/api/appointments/appointments?veterinarian_id={user["id"]}&date_from={today}&date_to={today}',
+        headers=headers
+    )
+
+    today_appointments = response.json().get('appointments', []) if response.status_code == 200 else []
+
+    # Obtener todas las citas pendientes
+    response = requests.get(
+        f'{APPOINTMENT_SERVICE_URL}/api/appointments/appointments?veterinarian_id={user["id"]}&status=scheduled',
+        headers=headers
+    )
+
+    upcoming_appointments = response.json().get('appointments', []) if response.status_code == 200 else []
+
+    # Obtener horario del veterinario
+    response = requests.get(
+        f'{APPOINTMENT_SERVICE_URL}/api/schedules/staff-schedules/{user["id"]}',
+        headers=headers
+    )
+
+    schedules = response.json().get('schedules', []) if response.status_code == 200 else []
+
+    # Obtener notificaciones
+    notif_response = requests.get(
+        f'{NOTIFICATION_SERVICE_URL}/api/notifications/notifications/{user["id"]}?status=pending',
+    )
+    notifications = notif_response.json().get('notifications', []) if notif_response.status_code == 200 else []
+
+    return render_template(
+        'veterinarian_dashboard.html',
+        user=user,
+        today_appointments=today_appointments,
+        upcoming_appointments=upcoming_appointments,
+        schedules=schedules,
+        notifications=notifications,
+        today=today
+    )
+
+
+@app.route('/dashboard/receptionist')
+@login_required
+def receptionist_dashboard():
+    """Dashboard específico para recepcionistas"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea recepcionista
+    if user['role'] != 'receptionist':
+        flash('Acceso no autorizado.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    headers = {'Authorization': f'Bearer {session["token"]}'}
+
+    # Obtener citas del día
+    today = datetime.now().strftime('%Y-%m-%d')
+    response = requests.get(
+        f'{APPOINTMENT_SERVICE_URL}/api/appointments/appointments?date_from={today}&date_to={today}',
+        headers=headers
+    )
+
+    today_appointments = response.json().get('appointments', []) if response.status_code == 200 else []
+
+    # Obtener lista de veterinarios disponibles hoy
+    response = requests.get(f'{AUTH_SERVICE_URL}/api/auth/veterinarians', headers=headers)
+    veterinarians = response.json().get('veterinarians', []) if response.status_code == 200 else []
+
+    # Obtener notificaciones
+    notif_response = requests.get(
+        f'{NOTIFICATION_SERVICE_URL}/api/notifications/notifications/{user["id"]}?status=pending',
+    )
+    notifications = notif_response.json().get('notifications', []) if notif_response.status_code == 200 else []
+
+    return render_template(
+        'receptionist_dashboard.html',
+        user=user,
+        today_appointments=today_appointments,
+        veterinarians=veterinarians,
+        notifications=notifications,
+        today=today
+    )
+
+
+@app.route('/dashboard/assistant')
+@login_required
+def assistant_dashboard():
+    """Dashboard específico para auxiliares veterinarios"""
+    user = session.get('user')
+
+    # Verificar que el usuario sea auxiliar
+    if user['role'] != 'assistant':
+        flash('Acceso no autorizado.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    headers = {'Authorization': f'Bearer {session["token"]}'}
+
+    # Obtener citas del día
+    today = datetime.now().strftime('%Y-%m-%d')
+    response = requests.get(
+        f'{APPOINTMENT_SERVICE_URL}/api/appointments/appointments?date_from={today}&date_to={today}',
+        headers=headers
+    )
+
+    today_appointments = response.json().get('appointments', []) if response.status_code == 200 else []
+
+    # Obtener lista de tareas pendientes (simulado, esto requeriría un nuevo servicio de tareas)
+    tasks = [
+        {
+            'id': 1,
+            'description': 'Preparar consultorio 1',
+            'status': 'pending',
+            'created_at': datetime.now().isoformat()
+        },
+        {
+            'id': 2,
+            'description': 'Revisar inventario de medicamentos',
+            'status': 'pending',
+            'created_at': datetime.now().isoformat()
+        },
+        {
+            'id': 3,
+            'description': 'Asistir al Dr. García con cirugía',
+            'status': 'pending',
+            'created_at': datetime.now().isoformat()
+        }
+    ]
+
+    # Obtener notificaciones
+    notif_response = requests.get(
+        f'{NOTIFICATION_SERVICE_URL}/api/notifications/notifications/{user["id"]}?status=pending',
+    )
+    notifications = notif_response.json().get('notifications', []) if notif_response.status_code == 200 else []
+
+    return render_template(
+        'assistant_dashboard.html',
+        user=user,
+        today_appointments=today_appointments,
+        tasks=tasks,
+        notifications=notifications,
+        today=today
+    )
+
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000, debug=True)

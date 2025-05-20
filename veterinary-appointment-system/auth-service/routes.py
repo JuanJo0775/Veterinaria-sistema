@@ -1,9 +1,9 @@
-# auth-service/routes.py
+# auth-service/routes.py (modificado)
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
 from models import User
-from db import db  # Importar desde db.py
+from db import db
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -15,8 +15,8 @@ class UserRegisterSchema(Schema):
     first_name = fields.Str(required=True)
     last_name = fields.Str(required=True)
     phone = fields.Str(required=False)
-    role = fields.Str(required=True, validate=lambda x: x in ['veterinarian', 'client'])
-    specialization = fields.Str(required=False)
+    # Nota: El registro público solo es para clientes
+    # Los administradores registran al personal
 
 
 class UserLoginSchema(Schema):
@@ -40,14 +40,14 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'error': 'User already exists'}), 409
 
-    # Crear nuevo usuario
+    # Crear nuevo usuario (siempre como cliente para el registro público)
     user = User(
         email=data['email'],
         first_name=data['first_name'],
         last_name=data['last_name'],
         phone=data.get('phone'),
-        role=data['role'],
-        specialization=data.get('specialization') if data['role'] == 'veterinarian' else None
+        role='client',
+        specialization=None
     )
     user.set_password(data['password'])
 
@@ -90,7 +90,8 @@ def login():
     return jsonify({
         'message': 'Login successful',
         'user': user.to_dict(),
-        'access_token': access_token
+        'access_token': access_token,
+        'role': user.role  # Agregar el rol explícitamente para ayudar al frontend
     }), 200
 
 
@@ -129,3 +130,23 @@ def get_veterinarians():
 @jwt_required()
 def verify_token():
     return jsonify({'valid': True}), 200
+
+
+# Función para verificar permisos según rol
+@auth_bp.route('/verify-role', methods=['GET'])
+@jwt_required()
+def verify_role():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    roles_allowed = request.args.getlist('roles')
+    if not roles_allowed:
+        return jsonify({'error': 'No roles specified'}), 400
+
+    if user.role in roles_allowed:
+        return jsonify({'valid': True, 'role': user.role}), 200
+    else:
+        return jsonify({'valid': False, 'message': 'Insufficient permissions', 'role': user.role}), 403

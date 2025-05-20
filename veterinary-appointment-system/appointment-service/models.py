@@ -84,3 +84,56 @@ class VeterinarianAvailability(db.Model):
             'is_available': self.is_available,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+class StaffSchedule(db.Model):
+    __tablename__ = 'staff_schedules'
+
+    id = db.Column(db.Integer, primary_key=True)
+    staff_id = db.Column(db.Integer, nullable=False)
+    day_of_week = db.Column(db.Integer, nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+    break_start = db.Column(db.Time, nullable=True)
+    break_end = db.Column(db.Time, nullable=True)
+    max_appointments = db.Column(db.Integer, default=8)
+    appointment_duration = db.Column(db.Integer, default=30)
+    is_available = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'staff_id': self.staff_id,
+            'day_of_week': self.day_of_week,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'break_start': self.break_start.isoformat() if self.break_start else None,
+            'break_end': self.break_end.isoformat() if self.break_end else None,
+            'max_appointments': self.max_appointments,
+            'appointment_duration': self.appointment_duration,
+            'is_available': self.is_available,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+# Nueva clase para configuraciones de la clínica
+class ClinicSetting(db.Model):
+    __tablename__ = 'clinic_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    setting_name = db.Column(db.String(100), unique=True, nullable=False)
+    setting_value = db.Column(db.Text)
+    setting_type = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'setting_name': self.setting_name,
+            'setting_value': self.setting_value,
+            'setting_type': self.setting_type,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }

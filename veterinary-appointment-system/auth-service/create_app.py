@@ -1,4 +1,4 @@
-# auth-service/create_app.py
+# auth-service/create_app.py (actualizado)
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -57,5 +57,9 @@ def create_app():
         # Importar y registrar rutas
         from routes import auth_bp
         app.register_blueprint(auth_bp, url_prefix='/api/auth')
+
+        # Registrar rutas de administrador
+        from admin_routes import admin_bp
+        app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
     return app

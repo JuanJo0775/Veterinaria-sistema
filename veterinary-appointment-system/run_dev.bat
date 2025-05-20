@@ -1,4 +1,4 @@
-@echo off
+cd@echo off
 REM run_dev.bat - Batch file para Windows
 echo === Starting Veterinary System Development Server ===
 

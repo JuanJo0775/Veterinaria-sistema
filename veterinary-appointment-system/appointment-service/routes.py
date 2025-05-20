@@ -7,6 +7,8 @@ import os
 from models import Appointment, Pet, VeterinarianAvailability
 from db import db  # Importar desde db.py
 
+
+
 appointment_bp = Blueprint('appointments', __name__)
 
 
@@ -17,7 +19,7 @@ class AppointmentSchema(Schema):
     pet_id = fields.Int(required=True)
     appointment_date = fields.Date(required=True)
     appointment_time = fields.Time(required=True)
-    duration_minutes = fields.Int(default=30)
+    duration_minutes = fields.Int(load_default=30)
     reason = fields.Str(required=True)
     notes = fields.Str()
 
@@ -284,3 +286,61 @@ def get_available_slots(veterinarian_id):
         current_time = (datetime.combine(date.today(), current_time) + slot_duration).time()
 
     return jsonify({'available_slots': available_slots}), 200
+
+
+@appointment_bp.route('/appointments/stats', methods=['GET'])
+def get_appointment_stats():
+    """Obtener estadísticas de citas para el panel de administración"""
+    # Parámetros opcionales
+    date_str = request.args.get('date')
+
+    # Obtener la fecha actual si no se proporciona
+    if date_str:
+        try:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format'}), 400
+    else:
+        target_date = datetime.now().date()
+
+    # Estadísticas para el día actual
+    today_appointments = Appointment.query.filter_by(appointment_date=target_date).count()
+
+    # Estadísticas por estado
+    scheduled_count = Appointment.query.filter_by(status='scheduled').count()
+    completed_count = Appointment.query.filter_by(status='completed').count()
+    cancelled_count = Appointment.query.filter_by(status='cancelled').count()
+    no_show_count = Appointment.query.filter_by(status='no-show').count()
+
+    # Estadísticas por veterinario
+    vet_stats_query = db.session.query(
+        Appointment.veterinarian_id,
+        db.func.count(Appointment.id)
+    ).group_by(Appointment.veterinarian_id).all()
+
+    vet_stats = {vet_id: count for vet_id, count in vet_stats_query}
+
+    # Estadísticas por mes (para el año actual)
+    current_year = datetime.now().year
+    monthly_stats_query = db.session.query(
+        db.extract('month', Appointment.appointment_date),
+        db.func.count(Appointment.id)
+    ).filter(
+        db.extract('year', Appointment.appointment_date) == current_year
+    ).group_by(
+        db.extract('month', Appointment.appointment_date)
+    ).all()
+
+    monthly_stats = {int(month): count for month, count in monthly_stats_query}
+
+    return jsonify({
+        'appointment_stats': {
+            'today': today_appointments,
+            'scheduled': scheduled_count,
+            'completed': completed_count,
+            'cancelled': cancelled_count,
+            'no_show': no_show_count,
+            'by_veterinarian': vet_stats,
+            'monthly': monthly_stats
+        }
+    }), 200

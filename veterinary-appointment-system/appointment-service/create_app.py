@@ -1,4 +1,4 @@
-# appointment-service/create_app.py
+# appointment-service/create_app.py (actualizado)
 from flask import Flask, jsonify
 from flask_cors import CORS
 import os
@@ -29,5 +29,9 @@ def create_app():
         # Importar y registrar rutas
         from routes import appointment_bp
         app.register_blueprint(appointment_bp, url_prefix='/api/appointments')
+
+        # Registrar rutas de horarios
+        from schedule_routes import schedule_bp
+        app.register_blueprint(schedule_bp, url_prefix='/api/schedules')
 
     return app

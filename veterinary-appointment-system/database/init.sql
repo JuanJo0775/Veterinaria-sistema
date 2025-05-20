@@ -117,3 +117,47 @@ INSERT INTO veterinarian_availability (veterinarian_id, day_of_week, start_time,
     (2, 3, '09:00', '17:00'),
     (2, 4, '09:00', '17:00'),
     (2, 5, '09:00', '17:00');
+
+-- Modificar la tabla de usuarios para soportar más roles
+ALTER TABLE users
+  ALTER COLUMN role TYPE VARCHAR(50) CHECK (role IN ('admin', 'veterinarian', 'receptionist', 'assistant', 'client'));
+
+-- Agregar tabla para configuración de horarios (más detallada que veterinarian_availability)
+CREATE TABLE IF NOT EXISTS staff_schedules (
+    id SERIAL PRIMARY KEY,
+    staff_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    day_of_week INTEGER NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6),
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    break_start TIME,
+    break_end TIME,
+    max_appointments INTEGER DEFAULT 8,
+    appointment_duration INTEGER DEFAULT 30,
+    is_available BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(staff_id, day_of_week)
+);
+
+-- Agregar tabla para administración de clínica
+CREATE TABLE IF NOT EXISTS clinic_settings (
+    id SERIAL PRIMARY KEY,
+    setting_name VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT,
+    setting_type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insertar configuraciones iniciales
+INSERT INTO clinic_settings (setting_name, setting_value, setting_type) VALUES
+('clinic_name', 'Clínica Veterinaria', 'text'),
+('business_hours_start', '09:00', 'time'),
+('business_hours_end', '18:00', 'time'),
+('appointment_duration', '30', 'integer'),
+('max_appointments_per_day', '20', 'integer');
+
+-- Crear un usuario administrador por defecto
+INSERT INTO users (email, password, first_name, last_name, phone, role, is_active) VALUES
+('admin@veterinary.com', '$2b$12$1s/qCzKhHguJW.CQYyyJzugL0YROHjD97Ot0v63YJuIF2fQrSWmPG', 'Admin', 'Sistema', '555-ADMIN', 'admin', TRUE)
+ON CONFLICT (email) DO NOTHING;
