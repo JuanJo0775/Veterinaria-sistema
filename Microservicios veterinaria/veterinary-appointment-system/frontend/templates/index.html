@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - Sistema de Citas Veterinarias{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Bienvenido al Sistema de Citas Veterinarias</h1>
+    <p>Agenda citas para tu mascota de manera fácil y rápida</p>
+
+    <div class="cta-buttons">
+        {% if not session.get('user') %}
+            <a href="{{ url_for('register') }}" class="btn btn-primary">Registrarse</a>
+            <a href="{{ url_for('login') }}" class="btn btn-secondary">Iniciar Sesión</a>
+        {% else %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Ir al Dashboard</a>
+        {% endif %}
+    </div>
+</div>
+
+<section class="features">
+    <h2>Nuestros Servicios</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">🏥</div>
+            <h3>Consultas Generales</h3>
+            <p>Revisiones y chequeos completos para tu mascota</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">💉</div>
+            <h3>Vacunación</h3>
+            <p>Programa completo de vacunas para proteger a tu mascota</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🔬</div>
+            <h3>Análisis Clínicos</h3>
+            <p>Laboratorio completo para diagnósticos precisos</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🏥</div>
+            <h3>Cirugías</h3>
+            <p>Procedimientos quirúrgicos con la mejor tecnología</p>
+        </div>
+    </div>
+</section>
+
+<section class="about">
+    <h2>Acerca de Nosotros</h2>
+    <p>Somos una clínica veterinaria comprometida con el bienestar de tu mascota. Nuestro equipo de profesionales está dedicado a brindar la mejor atención médica veterinaria.</p>
+</section>
+{% endblock %}
