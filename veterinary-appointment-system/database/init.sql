@@ -118,11 +118,18 @@ INSERT INTO veterinarian_availability (veterinarian_id, day_of_week, start_time,
     (2, 4, '09:00', '17:00'),
     (2, 5, '09:00', '17:00');
 
--- Modificar la tabla de usuarios para soportar más roles
-ALTER TABLE users
-  ALTER COLUMN role TYPE VARCHAR(50) CHECK (role IN ('admin', 'veterinarian', 'receptionist', 'assistant', 'client'));
+-- Corregir la modificación de la columna role en users
+-- Primero eliminar la restricción existente (si existe)
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 
--- Agregar tabla para configuración de horarios (más detallada que veterinarian_availability)
+-- Luego modificar el tipo si es necesario
+ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(50);
+
+-- Finalmente añadir la nueva restricción CHECK
+ALTER TABLE users ADD CONSTRAINT users_role_check
+  CHECK (role IN ('admin', 'veterinarian', 'receptionist', 'assistant', 'client'));
+
+-- Agregar tabla para configuración de horarios
 CREATE TABLE IF NOT EXISTS staff_schedules (
     id SERIAL PRIMARY KEY,
     staff_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -155,7 +162,8 @@ INSERT INTO clinic_settings (setting_name, setting_value, setting_type) VALUES
 ('business_hours_start', '09:00', 'time'),
 ('business_hours_end', '18:00', 'time'),
 ('appointment_duration', '30', 'integer'),
-('max_appointments_per_day', '20', 'integer');
+('max_appointments_per_day', '20', 'integer')
+ON CONFLICT (setting_name) DO NOTHING;
 
 -- Crear un usuario administrador por defecto
 INSERT INTO users (email, password, first_name, last_name, phone, role, is_active) VALUES
