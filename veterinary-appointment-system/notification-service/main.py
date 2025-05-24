@@ -8,7 +8,7 @@ from create_app import create_app
 
 if __name__ == '__main__':
     # Configuración para desarrollo local
-    os.environ['DATABASE_URL'] = 'postgresql://postgres:bocato0731@localhost:5432/veterinary-appointment-system'
+    os.environ['DATABASE_URL'] = 'postgresql://postgres:2007sA@localhost:5432/veterinary-appointment-system'
     os.environ['MAIL_SERVER'] = 'smtp.gmail.com'
     os.environ['MAIL_PORT'] = '587'
     os.environ['MAIL_USERNAME'] = 'test@example.com'

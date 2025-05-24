@@ -22,7 +22,7 @@ from create_app import create_app
 
 if __name__ == '__main__':
     # Configuración para desarrollo local
-    os.environ['DATABASE_URL'] = 'postgresql://postgres:bocato0731@localhost:5432/veterinary-appointment-system'
+    os.environ['DATABASE_URL'] = 'postgresql://postgres:2007sA@localhost:5432/veterinary-appointment-system'
     os.environ['AUTH_SERVICE_URL'] = 'http://localhost:5001'
 
     app = create_app()

@@ -9,7 +9,7 @@ from create_app import create_app
 
 if __name__ == '__main__':
     # Configuración para desarrollo local
-    os.environ['DATABASE_URL'] = 'postgresql://postgres:bocato0731@localhost:5432/veterinary-appointment-system'
+    os.environ['DATABASE_URL'] = 'postgresql://postgres:2007sA@localhost:5432/veterinary-appointment-system'
     os.environ['JWT_SECRET_KEY'] = 'dev-secret-key-for-local-development'
 
     app = create_app()

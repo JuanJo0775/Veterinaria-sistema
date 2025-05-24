@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Configurar conexión a la base de datos
 DATABASE_URL = os.getenv('DATABASE_URL',
-                         'postgresql://postgres:bocato0731@localhost:5432/veterinary-appointment-system')
+                         'postgresql://postgres:2007sA@localhost:5432/veterinary-appointment-system')
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 session = Session()

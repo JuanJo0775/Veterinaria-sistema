@@ -1,0 +1,1436 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Veterinario - Sistema de Citas Veterinarias{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-styles.css') }}">
+<style>
+/* Estilos específicos para el dashboard del veterinario */
+.vet-dashboard {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.vet-nav {
+    display: flex;
+    background-color: var(--white);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.vet-nav-link {
+    padding: 1rem 1.5rem;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: background-color 0.3s;
+    flex: 1;
+    text-align: center;
+    font-weight: bold;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.vet-nav-link:hover {
+    background-color: #f5f5f5;
+}
+
+.vet-nav-link.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.vet-tab {
+    background-color: var(--white);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    min-height: 600px;
+}
+
+/* Calendario de citas */
+.calendar-container {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 2rem;
+}
+
+.time-column {
+    border-right: 1px solid #ddd;
+    padding-right: 1rem;
+}
+
+.time-slot {
+    height: 60px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    color: #666;
+    padding: 0.5rem;
+}
+
+.appointments-column {
+    position: relative;
+}
+
+.calendar-appointment {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background-color: #e3f2fd;
+    border: 1px solid #2196F3;
+    border-radius: 4px;
+    padding: 0.5rem;
+    margin: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    height: 56px;
+    overflow: hidden;
+}
+
+.calendar-appointment:hover {
+    background-color: #bbdefb;
+    transform: scale(1.02);
+}
+
+.calendar-appointment.status-completed {
+    background-color: #e8f5e9;
+    border-color: #4CAF50;
+}
+
+.calendar-appointment.status-cancelled {
+    background-color: #ffebee;
+    border-color: #f44336;
+    opacity: 0.7;
+}
+
+.appointment-title {
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.appointment-details {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Lista de citas del día */
+.today-appointments {
+    display: grid;
+    gap: 1rem;
+}
+
+.appointment-card-detailed {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.3s;
+}
+
+.appointment-card-detailed:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.appointment-header-detailed {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.appointment-time-detailed {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.appointment-status-detailed {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.appointment-body-detailed {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.client-info, .pet-info {
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.info-label {
+    font-weight: bold;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.info-value {
+    margin-bottom: 0.5rem;
+}
+
+.appointment-reason {
+    grid-column: 1 / -1;
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f0f8ff;
+    border-radius: 4px;
+}
+
+.appointment-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Historia clínica */
+.medical-history-container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+    height: 600px;
+}
+
+.patients-list {
+    border-right: 1px solid #ddd;
+    padding-right: 1rem;
+    overflow-y: auto;
+}
+
+.patient-search {
+    width: 100%;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.patient-item {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.patient-item:hover, .patient-item.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.patient-name {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.patient-details {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.medical-history-content {
+    overflow-y: auto;
+}
+
+.medical-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.medical-records {
+    display: grid;
+    gap: 1rem;
+}
+
+.medical-record {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.record-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.record-date {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.record-type {
+    background-color: #e3f2fd;
+    color: #1976D2;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.record-content {
+    line-height: 1.6;
+}
+
+.record-diagnosis {
+    background-color: #fff3e0;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.record-treatment {
+    background-color: #e8f5e9;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.no-records {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 2rem;
+}
+
+/* Horario del veterinario */
+.schedule-overview {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.schedule-day-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.schedule-day-card.today {
+    border-color: var(--primary-color);
+    background-color: #f0f8ff;
+}
+
+.schedule-day-card.unavailable {
+    background-color: #f5f5f5;
+    color: #999;
+}
+
+.day-name {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.day-hours {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.day-appointments {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.break-time {
+    font-size: 0.8rem;
+    color: #f57c00;
+    font-style: italic;
+}
+
+/* Modal para detalles de cita */
+.appointment-modal .modal-content {
+    max-width: 800px;
+    width: 90%;
+}
+
+.appointment-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.appointment-modal-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.modal-section {
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.modal-section h4 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.notes-section {
+    grid-column: 1 / -1;
+    margin-top: 1rem;
+}
+
+.notes-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+.today-stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.stat-badge {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+.loading {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 2rem;
+}
+
+.no-appointments, .no-patients {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 2rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.calendar-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.schedule-actions {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .calendar-container,
+    .medical-history-container,
+    .appointment-body-detailed {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .vet-nav {
+        flex-direction: column;
+    }
+
+    .appointment-modal-body {
+        grid-template-columns: 1fr;
+    }
+
+    .today-stats {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="vet-dashboard">
+    <h1>Panel Veterinario</h1>
+    <p class="role-badge role-badge-veterinarian">Dr(a). {{ user.first_name }} {{ user.last_name }}</p>
+    {% if user.specialization %}
+    <p class="specialization">Especialidad: {{ user.specialization }}</p>
+    {% endif %}
+
+    <!-- Navegación del panel -->
+    <div class="vet-nav">
+        <button class="vet-nav-link active" onclick="switchVetTab('today')">Citas de Hoy</button>
+        <button class="vet-nav-link" onclick="switchVetTab('calendar')">Calendario</button>
+        <button class="vet-nav-link" onclick="switchVetTab('schedule')">Mi Horario</button>
+        <button class="vet-nav-link" onclick="switchVetTab('history')">Historia Clínica</button>
+    </div>
+
+    <!-- Pestaña: Citas de Hoy -->
+    <div id="vet-today-tab" class="vet-tab">
+        <div class="section-header">
+            <h2>Citas de Hoy - {{ today }}</h2>
+            <div class="today-stats">
+                <span class="stat-badge">Total: <span id="today-total">0</span></span>
+                <span class="stat-badge">Completadas: <span id="today-completed">0</span></span>
+                <span class="stat-badge">Pendientes: <span id="today-pending">0</span></span>
+            </div>
+        </div>
+
+        <div id="today-appointments-list" class="today-appointments">
+            <!-- Citas del día cargadas dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Pestaña: Calendario -->
+    <div id="vet-calendar-tab" class="vet-tab" style="display: none;">
+        <div class="section-header">
+            <h2>Calendario de Citas</h2>
+            <div class="calendar-controls">
+                <input type="date" id="calendar-date" class="form-control" value="{{ today }}">
+                <button class="btn btn-primary" onclick="loadCalendarDate()">Cargar Fecha</button>
+            </div>
+        </div>
+
+        <div id="calendar-container" class="calendar-container">
+            <div class="time-column" id="time-column">
+                <!-- Horarios generados dinámicamente -->
+            </div>
+            <div class="appointments-column" id="appointments-column">
+                <!-- Citas posicionadas dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestaña: Mi Horario -->
+    <div id="vet-schedule-tab" class="vet-tab" style="display: none;">
+        <div class="section-header">
+            <h2>Mi Horario Semanal</h2>
+        </div>
+
+        <div id="schedule-overview" class="schedule-overview">
+            <!-- Horario semanal cargado dinámicamente -->
+        </div>
+
+        <div class="schedule-actions">
+            <button class="btn btn-secondary" onclick="requestScheduleChange()">Solicitar Cambio de Horario</button>
+        </div>
+    </div>
+
+    <!-- Pestaña: Historia Clínica -->
+    <div id="vet-history-tab" class="vet-tab" style="display: none;">
+        <div class="section-header">
+            <h2>Historia Clínica de Pacientes</h2>
+        </div>
+
+        <div class="medical-history-container">
+            <div class="patients-list">
+                <input type="text" id="patient-search" class="patient-search" placeholder="Buscar paciente...">
+                <div id="patients-list-content">
+                    <!-- Lista de pacientes cargada dinámicamente -->
+                </div>
+            </div>
+
+            <div class="medical-history-content">
+                <div id="medical-history-header" class="medical-history-header" style="display: none;">
+                    <div>
+                        <h3 id="selected-patient-name">Seleccione un paciente</h3>
+                        <p id="selected-patient-info"></p>
+                    </div>
+                    <button class="btn btn-primary" onclick="addMedicalRecord()">Agregar Registro</button>
+                </div>
+
+                <div id="medical-records-list" class="medical-records">
+                    <div class="no-records">
+                        <p>Seleccione un paciente para ver su historia clínica</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalles de cita -->
+<div id="appointment-details-modal" class="modal appointment-modal" style="display: none;">
+    <div class="modal-content">
+        <div class="appointment-modal-header">
+            <h3 id="appointment-modal-title">Detalles de la Cita</h3>
+            <button class="btn btn-secondary" onclick="closeAppointmentModal()">×</button>
+        </div>
+
+        <div class="appointment-modal-body">
+            <div class="modal-section">
+                <h4>Información del Cliente</h4>
+                <p><strong>Nombre:</strong> <span id="modal-client-name"></span></p>
+                <p><strong>Teléfono:</strong> <span id="modal-client-phone"></span></p>
+                <p><strong>Email:</strong> <span id="modal-client-email"></span></p>
+            </div>
+
+            <div class="modal-section">
+                <h4>Información de la Mascota</h4>
+                <p><strong>Nombre:</strong> <span id="modal-pet-name"></span></p>
+                <p><strong>Especie:</strong> <span id="modal-pet-species"></span></p>
+                <p><strong>Raza:</strong> <span id="modal-pet-breed"></span></p>
+                <p><strong>Edad:</strong> <span id="modal-pet-age"></span></p>
+                <p><strong>Peso:</strong> <span id="modal-pet-weight"></span></p>
+            </div>
+
+            <div class="modal-section">
+                <h4>Detalles de la Cita</h4>
+                <p><strong>Fecha:</strong> <span id="modal-appointment-date"></span></p>
+                <p><strong>Hora:</strong> <span id="modal-appointment-time"></span></p>
+                <p><strong>Motivo:</strong> <span id="modal-appointment-reason"></span></p>
+                <p><strong>Estado:</strong> <span id="modal-appointment-status"></span></p>
+            </div>
+
+            <div class="modal-section">
+                <h4>Cambiar Estado</h4>
+                <select id="appointment-status-select" class="form-control">
+                    <option value="scheduled">Programada</option>
+                    <option value="completed">Completada</option>
+                    <option value="cancelled">Cancelada</option>
+                    <option value="no-show">No asistió</option>
+                </select>
+                <button class="btn btn-primary mt-2" onclick="updateAppointmentStatus()">Actualizar Estado</button>
+            </div>
+        </div>
+
+        <div class="notes-section">
+            <h4>Notas de la Cita</h4>
+            <textarea id="appointment-notes" class="notes-textarea" placeholder="Agregar notas sobre la consulta..."></textarea>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="saveAppointmentNotes()">Guardar Notas</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar registro médico -->
+<div id="medical-record-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>Agregar Registro Médico</h3>
+        <form id="medical-record-form">
+            <input type="hidden" id="record-pet-id">
+
+            <div class="form-group">
+                <label for="record-type">Tipo de Consulta</label>
+                <select id="record-type" class="form-control" required>
+                    <option value="">Seleccione...</option>
+                    <option value="consulta-general">Consulta General</option>
+                    <option value="vacunacion">Vacunación</option>
+                    <option value="cirugia">Cirugía</option>
+                    <option value="emergencia">Emergencia</option>
+                    <option value="control">Control</option>
+                    <option value="diagnostico">Diagnóstico</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="record-symptoms">Síntomas/Motivo</label>
+                <textarea id="record-symptoms" class="form-control" rows="3" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="record-diagnosis">Diagnóstico</label>
+                <textarea id="record-diagnosis" class="form-control" rows="3" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="record-treatment">Tratamiento</label>
+                <textarea id="record-treatment" class="form-control" rows="3" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="record-medications">Medicamentos</label>
+                <textarea id="record-medications" class="form-control" rows="2"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="record-notes">Observaciones</label>
+                <textarea id="record-notes" class="form-control" rows="2"></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" onclick="saveMedicalRecord()" class="btn btn-primary">Guardar Registro</button>
+                <button type="button" onclick="closeMedicalRecordModal()" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let currentVetId = {{ user.id }};
+let currentAppointmentId = null;
+let currentPetId = null;
+let todayAppointments = [];
+let vetSchedule = [];
+let patientsList = [];
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    loadTodayAppointments();
+    loadVetSchedule();
+    setupEventListeners();
+});
+
+// Cambiar entre pestañas
+function switchVetTab(tabName) {
+    // Ocultar todas las pestañas
+    document.querySelectorAll('.vet-tab').forEach(tab => {
+        tab.style.display = 'none';
+    });
+
+    // Desactivar todos los enlaces
+    document.querySelectorAll('.vet-nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Mostrar pestaña seleccionada
+    document.getElementById(`vet-${tabName}-tab`).style.display = 'block';
+
+    // Activar enlace correspondiente
+    document.querySelector(`.vet-nav-link[onclick*="${tabName}"]`).classList.add('active');
+
+    // Cargar datos específicos
+    switch(tabName) {
+        case 'today':
+            loadTodayAppointments();
+            break;
+        case 'calendar':
+            loadCalendarDate();
+            break;
+        case 'schedule':
+            loadVetSchedule();
+            break;
+        case 'history':
+            loadPatientsList();
+            break;
+    }
+}
+
+// ===== CITAS DE HOY =====
+
+function loadTodayAppointments() {
+    const today = new Date().toISOString().split('T')[0];
+
+    fetch(`/api/appointments/appointments?veterinarian_id=${currentVetId}&date_from=${today}&date_to=${today}`, {
+        headers: {
+            'Authorization': `Bearer ${getAuthToken()}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.appointments) {
+            todayAppointments = data.appointments;
+            renderTodayAppointments();
+            updateTodayStats();
+        }
+    })
+    .catch(error => console.error('Error loading today appointments:', error));
+}
+
+function renderTodayAppointments() {
+    const container = document.getElementById('today-appointments-list');
+
+    if (!todayAppointments || todayAppointments.length === 0) {
+        container.innerHTML = '<div class="no-appointments">No tienes citas programadas para hoy</div>';
+        return;
+    }
+
+    // Ordenar por hora
+    const sortedAppointments = todayAppointments.sort((a, b) => {
+        return a.appointment_time.localeCompare(b.appointment_time);
+    });
+
+    container.innerHTML = '';
+
+    sortedAppointments.forEach(appointment => {
+        const card = document.createElement('div');
+        card.className = `appointment-card-detailed status-${appointment.status}`;
+        card.onclick = () => showAppointmentDetails(appointment);
+
+        card.innerHTML = `
+            <div class="appointment-header-detailed">
+                <div class="appointment-time-detailed">${formatTime(appointment.appointment_time)}</div>
+                <div class="appointment-status-detailed status-${appointment.status}">
+                    ${translateStatus(appointment.status)}
+                </div>
+            </div>
+            <div class="appointment-body-detailed">
+                <div class="client-info">
+                    <div class="info-label">Cliente</div>
+                    <div class="info-value">ID: ${appointment.client_id}</div>
+                    <div class="info-value">📞 Cargando...</div>
+                </div>
+                <div class="pet-info">
+                    <div class="info-label">Mascota</div>
+                    <div class="info-value">ID: ${appointment.pet_id}</div>
+                    <div class="info-value">🐾 Cargando...</div>
+                </div>
+                <div class="appointment-reason">
+                    <div class="info-label">Motivo de la consulta</div>
+                    <div class="info-value">${appointment.reason || 'No especificado'}</div>
+                </div>
+            </div>
+            <div class="appointment-actions">
+                <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); showAppointmentDetails(${JSON.stringify(appointment).replace(/"/g, '&quot;')})">
+                    Ver Detalles
+                </button>
+                ${appointment.status === 'scheduled' ? `
+                <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); markAsCompleted(${appointment.id})">
+                    Marcar Completada
+                </button>
+                ` : ''}
+            </div>
+        `;
+
+        container.appendChild(card);
+
+        // Cargar información adicional del cliente y mascota
+        loadClientInfo(appointment.client_id, card);
+        loadPetInfo(appointment.pet_id, card);
+    });
+}
+
+function updateTodayStats() {
+    const total = todayAppointments.length;
+    const completed = todayAppointments.filter(a => a.status === 'completed').length;
+    const pending = todayAppointments.filter(a => a.status === 'scheduled').length;
+
+    document.getElementById('today-total').textContent = total;
+    document.getElementById('today-completed').textContent = completed;
+    document.getElementById('today-pending').textContent = pending;
+}
+
+// ===== CALENDARIO =====
+
+function loadCalendarDate() {
+    const selectedDate = document.getElementById('calendar-date').value;
+
+    fetch(`/api/appointments/appointments?veterinarian_id=${currentVetId}&date_from=${selectedDate}&date_to=${selectedDate}`, {
+        headers: {
+            'Authorization': `Bearer ${getAuthToken()}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.appointments) {
+            renderCalendar(data.appointments, selectedDate);
+        }
+    })
+    .catch(error => console.error('Error loading calendar:', error));
+}
+
+function renderCalendar(appointments, date) {
+    const timeColumn = document.getElementById('time-column');
+    const appointmentsColumn = document.getElementById('appointments-column');
+
+    // Limpiar contenido
+    timeColumn.innerHTML = '';
+    appointmentsColumn.innerHTML = '';
+
+    // Generar horarios (8:00 AM - 6:00 PM)
+    const startHour = 8;
+    const endHour = 18;
+    const totalSlots = (endHour - startHour) * 2; // 30 minutos por slot
+
+    for (let i = 0; i < totalSlots; i++) {
+        const hour = startHour + Math.floor(i / 2);
+        const minutes = (i % 2) * 30;
+        const timeString = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+        const timeSlot = document.createElement('div');
+        timeSlot.className = 'time-slot';
+        timeSlot.textContent = formatTime(timeString);
+        timeColumn.appendChild(timeSlot);
+    }
+
+    // Posicionar citas
+    appointments.forEach(appointment => {
+        const appointmentTime = appointment.appointment_time;
+        const [hours, minutes] = appointmentTime.split(':').map(Number);
+
+        // Calcular posición vertical
+        const slotIndex = (hours - startHour) * 2 + Math.floor(minutes / 30);
+        const topPosition = slotIndex * 60; // 60px por slot
+
+        const appointmentElement = document.createElement('div');
+        appointmentElement.className = `calendar-appointment status-${appointment.status}`;
+        appointmentElement.style.top = `${topPosition}px`;
+        appointmentElement.onclick = () => showAppointmentDetails(appointment);
+
+        appointmentElement.innerHTML = `
+            <div class="appointment-title">${formatTime(appointmentTime)} - Cliente ID: ${appointment.client_id}</div>
+            <div class="appointment-details">Mascota ID: ${appointment.pet_id}<br>${appointment.reason || 'Sin motivo especificado'}</div>
+        `;
+
+        appointmentsColumn.appendChild(appointmentElement);
+    });
+}
+
+// ===== HORARIO DEL VETERINARIO =====
+
+function loadVetSchedule() {
+    fetch(`/api/schedules/staff-schedules/${currentVetId}`, {
+        headers: {
+            'Authorization': `Bearer ${getAuthToken()}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.schedules) {
+            vetSchedule = data.schedules;
+            renderVetSchedule();
+        }
+    })
+    .catch(error => {
+        console.error('Error loading vet schedule:', error);
+        // Mostrar horario por defecto si hay error
+        renderDefaultSchedule();
+    });
+}
+
+function renderVetSchedule() {
+    const container = document.getElementById('schedule-overview');
+    const today = new Date().getDay(); // 0 = domingo, 1 = lunes, etc.
+    const adjustedToday = today === 0 ? 6 : today - 1; // Ajustar para que lunes = 0
+
+    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+    container.innerHTML = '';
+
+    for (let i = 0; i < 7; i++) {
+        const dayCard = document.createElement('div');
+        dayCard.className = 'schedule-day-card';
+
+        if (i === adjustedToday) {
+            dayCard.classList.add('today');
+        }
+
+        const schedule = vetSchedule.find(s => s.day_of_week === i);
+
+        if (schedule && schedule.is_available) {
+            dayCard.innerHTML = `
+                <div class="day-name">${dayNames[i]}</div>
+                <div class="day-hours">${formatTime(schedule.start_time)} - ${formatTime(schedule.end_time)}</div>
+                ${schedule.break_start ? `<div class="break-time">Descanso: ${formatTime(schedule.break_start)} - ${formatTime(schedule.break_end)}</div>` : ''}
+                <div class="day-appointments">Máx: ${schedule.max_appointments} citas</div>
+                <div class="day-appointments">Duración: ${schedule.appointment_duration} min</div>
+            `;
+        } else {
+            dayCard.classList.add('unavailable');
+            dayCard.innerHTML = `
+                <div class="day-name">${dayNames[i]}</div>
+                <div class="day-hours">No disponible</div>
+            `;
+        }
+
+        container.appendChild(dayCard);
+    }
+}
+
+function renderDefaultSchedule() {
+    const container = document.getElementById('schedule-overview');
+    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+    container.innerHTML = '';
+
+    dayNames.forEach((day, index) => {
+        const dayCard = document.createElement('div');
+        dayCard.className = 'schedule-day-card';
+
+        if (index < 5) { // Lunes a Viernes
+            dayCard.innerHTML = `
+                <div class="day-name">${day}</div>
+                <div class="day-hours">09:00 AM - 17:00 PM</div>
+                <div class="break-time">Descanso: 13:00 - 14:00</div>
+                <div class="day-appointments">Máx: 8 citas</div>
+            `;
+        } else {
+            dayCard.classList.add('unavailable');
+            dayCard.innerHTML = `
+                <div class="day-name">${day}</div>
+                <div class="day-hours">No disponible</div>
+            `;
+        }
+
+        container.appendChild(dayCard);
+    });
+}
+
+// ===== HISTORIA CLÍNICA =====
+
+function loadPatientsList() {
+    // Cargar todos los pacientes que han tenido citas con este veterinario
+    fetch(`/api/appointments/appointments?veterinarian_id=${currentVetId}`, {
+        headers: {
+            'Authorization': `Bearer ${getAuthToken()}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.appointments) {
+            // Extraer IDs únicos de mascotas
+            const uniquePetIds = [...new Set(data.appointments.map(a => a.pet_id))];
+            loadPetsDetails(uniquePetIds);
+        }
+    })
+    .catch(error => console.error('Error loading patients list:', error));
+}
+
+function loadPetsDetails(petIds) {
+    const container = document.getElementById('patients-list-content');
+    container.innerHTML = '<div class="loading">Cargando pacientes...</div>';
+
+    patientsList = [];
+
+    // Simular carga de detalles de mascotas (en una implementación real, necesitarías una API)
+    const mockPets = [
+        { id: 1, name: 'Max', species: 'Perro', breed: 'Labrador', age: 3, owner_name: 'Carlos Rodríguez' },
+        { id: 2, name: 'Luna', species: 'Gato', breed: 'Siamés', age: 2, owner_name: 'Ana Martínez' },
+        { id: 3, name: 'Rocky', species: 'Perro', breed: 'Bulldog', age: 5, owner_name: 'Luis García' },
+        { id: 4, name: 'Mimi', species: 'Gato', breed: 'Persa', age: 1, owner_name: 'María López' }
+    ];
+
+    patientsList = mockPets.filter(pet => petIds.includes(pet.id));
+    renderPatientsList();
+}
+
+function renderPatientsList() {
+    const container = document.getElementById('patients-list-content');
+    const searchTerm = document.getElementById('patient-search').value.toLowerCase();
+
+    const filteredPatients = patientsList.filter(pet =>
+        pet.name.toLowerCase().includes(searchTerm) ||
+        pet.owner_name.toLowerCase().includes(searchTerm) ||
+        pet.species.toLowerCase().includes(searchTerm)
+    );
+
+    if (filteredPatients.length === 0) {
+        container.innerHTML = '<div class="no-patients">No se encontraron pacientes</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    filteredPatients.forEach(pet => {
+        const patientItem = document.createElement('div');
+        patientItem.className = 'patient-item';
+        patientItem.onclick = () => selectPatient(pet);
+
+        patientItem.innerHTML = `
+            <div class="patient-name">${getPetIcon(pet.species)} ${pet.name}</div>
+            <div class="patient-details">
+                ${pet.species} - ${pet.breed}<br>
+                Propietario: ${pet.owner_name}<br>
+                Edad: ${pet.age} años
+            </div>
+        `;
+
+        container.appendChild(patientItem);
+    });
+}
+
+function selectPatient(pet) {
+    currentPetId = pet.id;
+
+    // Destacar paciente seleccionado
+    document.querySelectorAll('.patient-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+
+    // Mostrar información del paciente
+    document.getElementById('selected-patient-name').textContent = `${pet.name} (${pet.species})`;
+    document.getElementById('selected-patient-info').textContent = `Propietario: ${pet.owner_name} | Raza: ${pet.breed} | Edad: ${pet.age} años`;
+    document.getElementById('medical-history-header').style.display = 'flex';
+
+    // Cargar historia clínica
+    loadMedicalHistory(pet.id);
+}
+
+function loadMedicalHistory(petId) {
+    const container = document.getElementById('medical-records-list');
+    container.innerHTML = '<div class="loading">Cargando historia clínica...</div>';
+
+    // Simular datos de historia clínica
+    const mockMedicalHistory = [
+        {
+            id: 1,
+            date: '2024-01-15',
+            type: 'Consulta General',
+            symptoms: 'Pérdida de apetito, letargo',
+            diagnosis: 'Infección estomacal leve',
+            treatment: 'Dieta blanda por 3 días, medicamento para el estómago',
+            medications: 'Omeprazol 10mg cada 12 horas por 5 días',
+            notes: 'Mejoría notable después del tratamiento. Revisar en 1 semana.'
+        },
+        {
+            id: 2,
+            date: '2024-01-08',
+            type: 'Vacunación',
+            symptoms: 'Control de rutina',
+            diagnosis: 'Animal sano',
+            treatment: 'Vacuna antirrábica aplicada',
+            medications: 'Ninguno',
+            notes: 'Próxima vacuna en 12 meses. Sin reacciones adversas.'
+        },
+        {
+            id: 3,
+            date: '2023-12-20',
+            type: 'Control',
+            symptoms: 'Revisión post-operatoria',
+            diagnosis: 'Recuperación satisfactoria de esterilización',
+            treatment: 'Limpieza de herida, retiro de puntos',
+            medications: 'Antibiótico completado satisfactoriamente',
+            notes: 'Cicatrización perfecta. Alta médica.'
+        }
+    ];
+
+    setTimeout(() => {
+        if (mockMedicalHistory.length === 0) {
+            container.innerHTML = '<div class="no-records">Este paciente no tiene registros médicos</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        mockMedicalHistory.forEach(record => {
+            const recordElement = document.createElement('div');
+            recordElement.className = 'medical-record';
+
+            recordElement.innerHTML = `
+                <div class="record-header">
+                    <div class="record-date">${formatDate(record.date)}</div>
+                    <div class="record-type">${record.type}</div>
+                </div>
+                <div class="record-content">
+                    <p><strong>Síntomas/Motivo:</strong> ${record.symptoms}</p>
+                    <div class="record-diagnosis">
+                        <strong>Diagnóstico:</strong><br>
+                        ${record.diagnosis}
+                    </div>
+                    <div class="record-treatment">
+                        <strong>Tratamiento:</strong><br>
+                        ${record.treatment}
+                    </div>
+                    ${record.medications !== 'Ninguno' ? `
+                    <p><strong>Medicamentos:</strong> ${record.medications}</p>
+                    ` : ''}
+                    ${record.notes ? `
+                    <p><strong>Observaciones:</strong> ${record.notes}</p>
+                    ` : ''}
+                </div>
+            `;
+
+            container.appendChild(recordElement);
+        });
+    }, 500);
+}
+
+// ===== MODALES =====
+
+function showAppointmentDetails(appointment) {
+    currentAppointmentId = appointment.id;
+
+    document.getElementById('appointment-modal-title').textContent = `Cita del ${formatDate(appointment.appointment_date)}`;
+    document.getElementById('modal-appointment-date').textContent = formatDate(appointment.appointment_date);
+    document.getElementById('modal-appointment-time').textContent = formatTime(appointment.appointment_time);
+    document.getElementById('modal-appointment-reason').textContent = appointment.reason || 'No especificado';
+    document.getElementById('modal-appointment-status').textContent = translateStatus(appointment.status);
+    document.getElementById('appointment-status-select').value = appointment.status;
+    document.getElementById('appointment-notes').value = appointment.notes || '';
+
+    // Cargar información del cliente y mascota
+    loadClientForModal(appointment.client_id);
+    loadPetForModal(appointment.pet_id);
+
+    document.getElementById('appointment-details-modal').style.display = 'flex';
+}
+
+function closeAppointmentModal() {
+    document.getElementById('appointment-details-modal').style.display = 'none';
+    currentAppointmentId = null;
+}
+
+function updateAppointmentStatus() {
+    if (!currentAppointmentId) return;
+
+    const newStatus = document.getElementById('appointment-status-select').value;
+
+    fetch(`/api/appointments/appointments/${currentAppointmentId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+            return;
+        }
+
+        alert('Estado actualizado exitosamente');
+        closeAppointmentModal();
+        loadTodayAppointments();
+    })
+    .catch(error => {
+        console.error('Error updating appointment status:', error);
+        alert('Error al actualizar el estado');
+    });
+}
+
+function saveAppointmentNotes() {
+    if (!currentAppointmentId) return;
+
+    const notes = document.getElementById('appointment-notes').value;
+
+    fetch(`/api/appointments/appointments/${currentAppointmentId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify({ notes: notes })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+            return;
+        }
+
+        alert('Notas guardadas exitosamente');
+    })
+    .catch(error => {
+        console.error('Error saving notes:', error);
+        alert('Error al guardar las notas');
+    });
+}
+
+function markAsCompleted(appointmentId) {
+    if (!confirm('¿Marcar esta cita como completada?')) return;
+
+    fetch(`/api/appointments/appointments/${appointmentId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify({ status: 'completed' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+            return;
+        }
+
+        alert('Cita marcada como completada');
+        loadTodayAppointments();
+    })
+    .catch(error => {
+        console.error('Error marking as completed:', error);
+        alert('Error al marcar como completada');
+    });
+}
+
+// Modal de registro médico
+function addMedicalRecord() {
+    if (!currentPetId) {
+        alert('Por favor seleccione un paciente primero');
+        return;
+    }
+
+    document.getElementById('record-pet-id').value = currentPetId;
+    document.getElementById('medical-record-form').reset();
+    document.getElementById('medical-record-modal').style.display = 'flex';
+}
+
+function closeMedicalRecordModal() {
+    document.getElementById('medical-record-modal').style.display = 'none';
+}
+
+function saveMedicalRecord() {
+    // En una implementación real, esto enviaría los datos a un endpoint específico
+    alert('Registro médico guardado exitosamente (funcionalidad simulada)');
+    closeMedicalRecordModal();
+
+    // Recargar historia clínica
+    if (currentPetId) {
+        loadMedicalHistory(currentPetId);
+    }
+}
+
+// ===== FUNCIONES AUXILIARES =====
+
+function loadClientInfo(clientId, cardElement) {
+    // Simular carga de información del cliente
+    const mockClients = {
+        3: { name: 'Carlos Rodríguez', phone: '555-0201', email: 'carlos@email.com' },
+        4: { name: 'Ana Martínez', phone: '555-0202', email: 'ana@email.com' }
+    };
+
+    setTimeout(() => {
+        const client = mockClients[clientId] || { name: 'Cliente Desconocido', phone: 'N/A', email: 'N/A' };
+        const clientInfo = cardElement.querySelector('.client-info .info-value:nth-child(2)');
+        const phoneInfo = cardElement.querySelector('.client-info .info-value:nth-child(3)');
+
+        if (clientInfo) clientInfo.textContent = client.name;
+        if (phoneInfo) phoneInfo.textContent = `📞 ${client.phone}`;
+    }, 500);
+}
+
+function loadPetInfo(petId, cardElement) {
+    // Simular carga de información de la mascota
+    const mockPets = {
+        1: { name: 'Max', species: 'Perro', breed: 'Labrador' },
+        2: { name: 'Luna', species: 'Gato', breed: 'Siamés' }
+    };
+
+    setTimeout(() => {
+        const pet = mockPets[petId] || { name: 'Mascota Desconocida', species: 'N/A', breed: 'N/A' };
+        const petInfo = cardElement.querySelector('.pet-info .info-value:nth-child(2)');
+        const speciesInfo = cardElement.querySelector('.pet-info .info-value:nth-child(3)');
+
+        if (petInfo) petInfo.textContent = pet.name;
+        if (speciesInfo) speciesInfo.textContent = `🐾 ${pet.species} - ${pet.breed}`;
+    }, 500);
+}
+
+function loadClientForModal(clientId) {
+    const mockClients = {
+        3: { name: 'Carlos Rodríguez', phone: '555-0201', email: 'carlos@email.com' },
+        4: { name: 'Ana Martínez', phone: '555-0202', email: 'ana@email.com' }
+    };
+
+    const client = mockClients[clientId] || { name: 'Cliente Desconocido', phone: 'N/A', email: 'N/A' };
+
+    document.getElementById('modal-client-name').textContent = client.name;
+    document.getElementById('modal-client-phone').textContent = client.phone;
+    document.getElementById('modal-client-email').textContent = client.email;
+}
+
+function loadPetForModal(petId) {
+    const mockPets = {
+        1: { name: 'Max', species: 'Perro', breed: 'Labrador', age: 3, weight: 25.5 },
+        2: { name: 'Luna', species: 'Gato', breed: 'Siamés', age: 2, weight: 4.2 }
+    };
+
+    const pet = mockPets[petId] || { name: 'Mascota Desconocida', species: 'N/A', breed: 'N/A', age: 'N/A', weight: 'N/A' };
+
+    document.getElementById('modal-pet-name').textContent = pet.name;
+    document.getElementById('modal-pet-species').textContent = pet.species;
+    document.getElementById('modal-pet-breed').textContent = pet.breed;
+    document.getElementById('modal-pet-age').textContent = pet.age !== 'N/A' ? `${pet.age} años` : 'N/A';
+    document.getElementById('modal-pet-weight').textContent = pet.weight !== 'N/A' ? `${pet.weight} kg` : 'N/A';
+}
+
+function requestScheduleChange() {
+    alert('Solicitud de cambio de horario enviada al administrador (funcionalidad simulada)');
+}
+
+function setupEventListeners() {
+    // Búsqueda de pacientes
+    const patientSearch = document.getElementById('patient-search');
+    if (patientSearch) {
+        patientSearch.addEventListener('input', function() {
+            renderPatientsList();
+        });
+    }
+
+    // Cerrar modales al hacer clic fuera
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(event) {
+            if (event.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    });
+
+    // Establecer fecha de hoy en el calendario
+    const calendarDate = document.getElementById('calendar-date');
+    if (calendarDate) {
+        calendarDate.value = new Date().toISOString().split('T')[0];
+    }
+}
+
+// Funciones de utilidad
+function getAuthToken() {
+    // Obtener token de autenticación de la sesión o localStorage
+    const metaToken = document.querySelector('meta[name="auth-token"]');
+    if (metaToken) {
+        return metaToken.getAttribute('content');
+    }
+    return sessionStorage.getItem('authToken') || localStorage.getItem('authToken') || '';
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+function formatTime(timeStr) {
+    if (!timeStr) return 'N/A';
+    if (timeStr.includes(':')) {
+        const [hours, minutes] = timeStr.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${minutes} ${ampm}`;
+    }
+    return timeStr;
+}
+
+function translateStatus(status) {
+    const translations = {
+        'scheduled': 'Programada',
+        'completed': 'Completada',
+        'cancelled': 'Cancelada',
+        'no-show': 'No asistió'
+    };
+    return translations[status] || status;
+}
+
+function getPetIcon(species) {
+    const icons = {
+        'perro': '🐕',
+        'gato': '🐈',
+        'ave': '🐦',
+        'pez': '🐠',
+        'conejo': '🐇',
+        'otro': '🐾'
+    };
+    return icons[species.toLowerCase()] || '🐾';
+}
+</script>
+{% endblock %}

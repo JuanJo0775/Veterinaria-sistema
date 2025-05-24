@@ -90,13 +90,13 @@ def run_service(service_info):
 
         # Establecer variables de entorno específicas para cada servicio
         if 'auth' in service_name.lower():
-            env['DATABASE_URL'] = 'postgresql://postgres:bocato0731@localhost:5432/veterinary-appointment-system'
+            env['DATABASE_URL'] = 'postgresql://postgres:2007sA@localhost:5432/veterinary-appointment-system'
             env['JWT_SECRET_KEY'] = 'dev-secret-key-for-local-development'
         elif 'appointment' in service_name.lower():
-            env['DATABASE_URL'] = 'postgresql://postgres:bocato0731@localhost:5432/veterinary-appointment-system'
+            env['DATABASE_URL'] = 'postgresql://postgres:2007sA@localhost:5432/veterinary-appointment-system'
             env['AUTH_SERVICE_URL'] = 'http://localhost:5001'
         elif 'notification' in service_name.lower():
-            env['DATABASE_URL'] = 'postgresql://postgres:bocato0731@localhost:5432/veterinary-appointment-system'
+            env['DATABASE_URL'] = 'postgresql://postgres:2007sA@localhost:5432/veterinary-appointment-system'
             env['MAIL_SERVER'] = 'smtp.gmail.com'
             env['MAIL_PORT'] = '587'
             env['MAIL_USERNAME'] = 'test@example.com'
@@ -135,6 +135,10 @@ def main():
     print(f"{Colors.OKCYAN}  • Auth Service: http://localhost:5001{Colors.ENDC}")
     print(f"{Colors.OKCYAN}  • Appointment Service: http://localhost:5002{Colors.ENDC}")
     print(f"{Colors.OKCYAN}  • Notification Service: http://localhost:5003{Colors.ENDC}")
+
+    print(f"\n{Colors.WARNING}Credentials para admin:{Colors.ENDC}")
+    print(f"{Colors.OKCYAN}  Email: admin@veterinary.com{Colors.ENDC}")
+    print(f"{Colors.OKCYAN}  Password: admin123{Colors.ENDC}")
 
     print(f"\n{Colors.WARNING}Press Ctrl+C to stop all services{Colors.ENDC}")
 
