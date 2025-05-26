@@ -1,4 +1,4 @@
-# frontend/main.py
+    # frontend/main.py
 import sys
 import os
 from datetime import datetime
@@ -79,29 +79,74 @@ def login():
     return render_template('login.html')
 
 
+# frontend/main.py - RUTA DE REGISTRO CORREGIDA
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        # Obtener datos del formulario
         form_data = {
-            'email': request.form.get('email'),
-            'password': request.form.get('password'),
-            'first_name': request.form.get('first_name'),
-            'last_name': request.form.get('last_name'),
-            'phone': request.form.get('phone'),
-            'role': 'client',  # Forzar siempre a cliente para registro público
-            'specialization': None  # No se requiere especialización para clientes
+            'email': request.form.get('email', '').strip(),
+            'password': request.form.get('password', ''),
+            'first_name': request.form.get('first_name', '').strip(),
+            'last_name': request.form.get('last_name', '').strip(),
+            'phone': request.form.get('phone', '').strip() or None
         }
 
-        response = requests.post(f'{AUTH_SERVICE_URL}/api/auth/register', json=form_data)
+        # Validación básica
+        if not all([form_data['email'], form_data['password'], form_data['first_name'], form_data['last_name']]):
+            flash('Por favor complete todos los campos obligatorios', 'danger')
+            return render_template('register.html')
 
-        if response.status_code == 201:
-            data = response.json()
-            session['token'] = data['access_token']
-            session['user'] = data['user']
-            flash('Registro exitoso', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Error en el registro', 'danger')
+        if len(form_data['password']) < 6:
+            flash('La contraseña debe tener al menos 6 caracteres', 'danger')
+            return render_template('register.html')
+
+        # Verificar formato de email básico
+        if '@' not in form_data['email'] or '.' not in form_data['email']:
+            flash('Por favor ingrese un email válido', 'danger')
+            return render_template('register.html')
+
+        try:
+            # Llamar al servicio de autenticación
+            response = requests.post(
+                f'{AUTH_SERVICE_URL}/api/auth/register',
+                json=form_data,
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+
+            print(f"Status code: {response.status_code}")
+            print(f"Response text: {response.text}")
+
+            if response.status_code == 201:
+                data = response.json()
+                session['token'] = data['access_token']
+                session['user'] = data['user']
+                flash('Registro exitoso. ¡Bienvenido!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                try:
+                    error_data = response.json()
+                    if 'error' in error_data:
+                        flash(f'Error: {error_data["error"]}', 'danger')
+                    elif 'errors' in error_data:
+                        # Errores de validación de marshmallow
+                        for field, messages in error_data['errors'].items():
+                            for message in messages:
+                                flash(f'{field}: {message}', 'danger')
+                    else:
+                        flash('Error en el registro. Por favor intente nuevamente.', 'danger')
+                except:
+                    flash(f'Error del servidor (código {response.status_code})', 'danger')
+
+        except requests.exceptions.Timeout:
+            flash('Error: El servidor tardó demasiado en responder. Intente nuevamente.', 'danger')
+        except requests.exceptions.ConnectionError:
+            flash('Error: No se pudo conectar al servidor. Verifique que el servicio de autenticación esté funcionando.', 'danger')
+        except requests.exceptions.RequestException as e:
+            flash(f'Error de conexión: {str(e)}', 'danger')
+        except Exception as e:
+            flash(f'Error inesperado: {str(e)}', 'danger')
 
     return render_template('register.html')
 
